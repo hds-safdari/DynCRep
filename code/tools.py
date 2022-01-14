@@ -264,5 +264,23 @@ def reciprocal_edges(G):
 
 	return reciprocity
 
+def normalize_nonzero_membership(u):
+    """
+        Given a matrix, it returns the same matrix normalized by row.
 
+        INPUT
+        -------
+        u: ndarray
+           Numpy Matrix.
+
+        OUTPUT
+        -------
+        The matrix normalized by row.
+    """
+
+    den1 = u.sum(axis=1, keepdims=True)
+    nzz = den1 == 0.
+    den1[nzz] = 1.
+
+    return u / den1
 

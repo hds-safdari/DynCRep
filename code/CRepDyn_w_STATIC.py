@@ -838,18 +838,22 @@ class CRepDyn:
 		else:
 			if isinstance(data, skt.dtensor):
 				# to do
-				l = - (1+self.beta0 * T) * self.lambda0_ija.sum() - self.eta * ( data_T[0].sum() + self.beta0 * data_T[1:].sum())
+				l = - (1+self.beta_hat[self.T] * T) * self.lambda0_ija.sum() - self.eta * ( data_T[0].sum() + self.beta_hat[-1] * data_T[1:].sum())
 			elif isinstance(data, skt.sptensor): 
 				l =  - (1+self.beta_hat[self.T] * T) * self.lambda0_ija.sum() - self.eta * (data_T.sum(axis=(1,2)) * self.beta_hat).sum() 
 
 		logM = np.log(self.M_nz)  
 		if isinstance(data, skt.dtensor):
-			Alog = data[data.nonzero()] * logM 
+			Alog = (data[data.nonzero()] * logM ).sum()
 		elif isinstance(data, skt.sptensor):
 			Alog = (data.vals * logM).sum()  
 		l += Alog
+
 		
-		l += (np.log( self.beta_hat[subs_nz[0]]+EPS) * data.vals).sum()  
+		if isinstance(data, skt.dtensor):
+			l += (np.log( self.beta_hat[subs_nz[0]]+EPS) * data[data.nonzero()]).sum()
+		elif isinstance(data, skt.sptensor): 
+			l += (np.log( self.beta_hat[subs_nz[0]]+EPS) * data.vals).sum()  
 		if self.T > 0:
 			l += (np.log(1- self.beta_hat[-1]+EPS) * self.bAtAtm1).sum()
 			l += (np.log(self.beta_hat[-1]+EPS) * self.Atm11At).sum() 
