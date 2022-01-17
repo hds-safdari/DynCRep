@@ -225,7 +225,7 @@ class CRepDyn_w_temp:
                 conv = convergence
                 best_loglik_values = list(loglik_values)
 
-            self.rseed += 1
+            # self.rseed += 1
 
             # end cycle over realizations
 
@@ -568,7 +568,7 @@ class CRepDyn_w_temp:
         if self.constraintU == True:
             u_tmp =  self.u_old * (  self._update_membership(subs_nz, self.u, self.v, self.w, 1))
 
-            Du = np.einsum('iq->q', self.v)
+            Du = np.einsum('iq->q', self.v) 
             if not self.assortative:
                 w_k = np.einsum('a,akq->kq', self.beta_hat, self.w) 
                 Z_uk = np.einsum('q,kq->k', Du, w_k)
@@ -635,6 +635,7 @@ class CRepDyn_w_temp:
 
         if not self.constrained:
             Dv = np.einsum('iq->q', self.u)
+
             if not self.assortative:
                 w_k = np.einsum('a,aqk->qk', self.beta_hat, self.w) 
                 Z_vk = np.einsum('q,qk->k', Dv, w_k)

@@ -213,11 +213,11 @@ class CRepDyn:
 
 				loglik_values.append(loglik)
 
+
 			if self.verbose:
 				print('done!')
 				print(f'Nreal = {r} - Loglikelihood = {loglik} - iterations = {it} - '
 					f'time = {np.round(time.time() - time_start, 2)} seconds')
-
 
 			if maxL < loglik:
 				self._update_optimal_parameters()
@@ -226,7 +226,7 @@ class CRepDyn:
 				conv = convergence
 				best_loglik_values = list(loglik_values)
 
-			self.rseed += 1
+			# self.rseed += 1
 
 			# end cycle over realizations
 
@@ -495,9 +495,10 @@ class CRepDyn:
 			# denominator = (data_T_vals * self.beta_hat[subs_nzp[0]]).sum() 
 			denominator = self.E0 + self.Etg0 * self.beta_hat[-1]
 			d_eta = self._update_eta(denominator=denominator)
+			self._update_cache(data_AtAtm1, data_T_vals,subs_nzp)
 		else:
 			d_eta = 0.
-		self._update_cache(data_AtAtm1, data_T_vals,subs_nzp)
+		
 
 
 		return d_u, d_v, d_w, d_eta, d_beta
@@ -559,7 +560,7 @@ class CRepDyn:
 		self.u = (self.ag - 1) + self.u_old * ( + self._update_membership(subs_nz, self.u, self.v, self.w, 1) )
 		
 		if not self.constrained:
-			Du = np.einsum('iq->q', self.v)
+			Du = np.einsum('iq->q', self.v )
 			if not self.assortative:
 				w_k = np.einsum('akq->kq', self.w)
 				Z_uk = np.einsum('q,kq->k', Du, w_k)
@@ -827,51 +828,64 @@ class CRepDyn:
 		# self._update_cache(data, data_T_vals, subs_nz) 
 
 		self.lambda0_ija = self._lambda0_full(self.u, self.v, self.w)
-		
-		if mask is not None:
-			sub_mask_nz = mask.nonzero()
+
+		if self.T == 0:
+			l = - self.lambda0_ija.sum()
+
+			logM = np.log(self.M_nz)  
 			if isinstance(data, skt.dtensor):
-				# to do
-				l = - (1+self.beta0 * T) * self.lambda0_ija[sub_mask_nz].sum() - self.eta * (data_T[sub_mask_nz] * self.beta_hat[sub_mask_nz[0]]).sum()
+				Alog = (data[data.nonzero()] * logM ).sum()
 			elif isinstance(data, skt.sptensor):
-				l = - (1+self.beta0 * T) * self.lambda0_ija[sub_mask_nz].sum() - self.eta * (data_T.toarray()[sub_mask_nz] * self.beta_hat[sub_mask_nz[0]]).sum()
-		else:
-			if isinstance(data, skt.dtensor):
-				# to do
-				l = - (1+self.beta_hat[self.T] * T) * self.lambda0_ija.sum() - self.eta * ( data_T[0].sum() + self.beta_hat[-1] * data_T[1:].sum())
-			elif isinstance(data, skt.sptensor): 
-				l =  - (1+self.beta_hat[self.T] * T) * self.lambda0_ija.sum() - self.eta * (data_T.sum(axis=(1,2)) * self.beta_hat).sum() 
-
-		logM = np.log(self.M_nz)  
-		if isinstance(data, skt.dtensor):
-			Alog = (data[data.nonzero()] * logM ).sum()
-		elif isinstance(data, skt.sptensor):
-			Alog = (data.vals * logM).sum()  
-		l += Alog
-
+				Alog = (data.vals * logM).sum()  
+			l += Alog
 		
-		if isinstance(data, skt.dtensor):
-			l += (np.log( self.beta_hat[subs_nz[0]]+EPS) * data[data.nonzero()]).sum()
-		elif isinstance(data, skt.sptensor): 
-			l += (np.log( self.beta_hat[subs_nz[0]]+EPS) * data.vals).sum()  
-		if self.T > 0:
-			l += (np.log(1- self.beta_hat[-1]+EPS) * self.bAtAtm1).sum()
-			l += (np.log(self.beta_hat[-1]+EPS) * self.Atm11At).sum() 
-
-
-		if self.ag >= 1.:
-			l += (self.ag -1) * np.log(self.u+EPS).sum()
-			l += (self.ag -1) * np.log(self.v+EPS).sum() 
-		if self.bg >= 0. :
-			l -= self.bg * self.u.sum()
-			l -= self.bg * self.v.sum() 
-
-
-		if np.isnan(l):
-			print("Likelihood is NaN!!!!")
-			sys.exit(1)
-		else:
 			return l
+		
+		else:
+			if mask is not None:
+				sub_mask_nz = mask.nonzero()
+				if isinstance(data, skt.dtensor):
+					# to do
+					l = - (1+self.beta0 * T) * self.lambda0_ija[sub_mask_nz].sum() - self.eta * (data_T[sub_mask_nz] * self.beta_hat[sub_mask_nz[0]]).sum()
+				elif isinstance(data, skt.sptensor):
+					l = - (1+self.beta0 * T) * self.lambda0_ija[sub_mask_nz].sum() - self.eta * (data_T.toarray()[sub_mask_nz] * self.beta_hat[sub_mask_nz[0]]).sum()
+			else:
+				if isinstance(data, skt.dtensor):
+					# to do
+					l = - (1+self.beta_hat[self.T] * T) * self.lambda0_ija.sum() - self.eta * ( data_T[0].sum() + self.beta_hat[-1] * data_T[1:].sum())
+				elif isinstance(data, skt.sptensor): 
+					l =  - (1+self.beta_hat[self.T] * T) * self.lambda0_ija.sum() - self.eta * (data_T.sum(axis=(1,2)) * self.beta_hat).sum() 
+
+			logM = np.log(self.M_nz)  
+			if isinstance(data, skt.dtensor):
+				Alog = (data[data.nonzero()] * logM ).sum()
+			elif isinstance(data, skt.sptensor):
+				Alog = (data.vals * logM).sum()  
+			l += Alog
+
+			
+			if isinstance(data, skt.dtensor):
+				l += (np.log( self.beta_hat[subs_nz[0]]+EPS) * data[data.nonzero()]).sum()
+			elif isinstance(data, skt.sptensor): 
+				l += (np.log( self.beta_hat[subs_nz[0]]+EPS) * data.vals).sum()  
+			if self.T > 0:
+				l += (np.log(1- self.beta_hat[-1]+EPS) * self.bAtAtm1).sum()
+				l += (np.log(self.beta_hat[-1]+EPS) * self.Atm11At).sum() 
+
+
+			if self.ag >= 1.:
+				l += (self.ag -1) * np.log(self.u+EPS).sum()
+				l += (self.ag -1) * np.log(self.v+EPS).sum() 
+			if self.bg >= 0. :
+				l -= self.bg * self.u.sum()
+				l -= self.bg * self.v.sum() 
+
+
+			if np.isnan(l):
+				print("Likelihood is NaN!!!!")
+				sys.exit(1)
+			else:
+				return l
 
 	def _lambda0_full(self, u, v, w):
 		"""
@@ -1143,6 +1157,23 @@ def func_beta_static(beta_t, obj):
 	bt += obj.Atm11At / beta_t  # adding Aij(t-1)*(1-Aij(t))
 	return bt
 
+
+def calculate_lambda(u,v,w):
+    if w.ndim == 2:
+        M = np.einsum('ik,jk->ijk', u, v)
+        M = np.einsum('ijk,ak->aij', M, w)
+    else:
+        M = np.einsum('ik,jq->ijkq', u, v)
+        M = np.einsum('ijkq,akq->aij', M, w)
+    return M
+
+def likelihood_aggr(u,v,w,B, EPS = 1e-12):
+    
+    lambda0_ija = calculate_lambda(u, v, w)
+    l = - lambda0_ija.sum()
+    AlogM = (B * np.log(lambda0_ija+EPS) ).sum()
+    l += AlogM
+    return l
 # def func_beta_static(beta_t, obj, data_AtAtm1, data_T_vals, subs_nz, mask):
 # 	assert type(obj) is CRepDyn 
 # 	# lambda0_ija = obj._lambda0_full(obj.u, obj.v, obj.w) 
