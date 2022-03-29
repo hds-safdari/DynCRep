@@ -1,9 +1,9 @@
 # DynCrep
 Python implementation of DynCrep algorithm described in:
 
-[1] Safdari H., Contisciani M. and De Bacco C. (2021). Reciprocity, community detection, and link prediction in dynamic networks, [arXiv:2112.09624](https://arxiv.org/abs/2112.09624).
+[1] Safdari H., Contisciani M. and De Bacco C. [Reciprocity, community detection, and link prediction in dynamic networks, Journal of Physics: Complexity 3.1 (2022): 015010](https://doi.org/10.1088/2632-072X/ac52e6).
 
-If you use this code please cite [this](https://arxiv.org/abs/2112.09624) article (preprint).
+If you use this code please cite [this](https://doi.org/10.1088/2632-072X/ac52e6) article.
 
 We present a new generative model for dynamic networks that captures reciprocity while modeling community structure.  
 This model aims to generalize to dynamic networks the method [CRep](https://github.com/mcontisc/CRep) presented in [Safdari et al. (2021)](https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.3.023209), which was of inspiration for the latent variables underlying the generative process. This was also further extended in [JointCrep](https://github.com/mcontisc/JointCRep) presented in [Contisciani et al.(2021)](https://arxiv.org/abs/2112.10436).  
