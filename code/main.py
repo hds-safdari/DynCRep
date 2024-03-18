@@ -22,9 +22,16 @@ def main():
 	p.add_argument('-a', '--algorithm', type=str, choices=['Crep_static','Crep_wtemp'], default='Crep_static')  # configuration
 	p.add_argument('-K', '--K', type=int, default=3)  # number of communities
 	p.add_argument('-T', '--T', type=int, default=100)  # number of time snapshots 
-	p.add_argument('-l', '--label', type=str, default='500_3_5.0_6_0.05_0.1_13')  # name of the network    
+	p.add_argument('-l', '--label', type=str,
+				   default='500_3_5.0_6_0.2_0.2_0')# TODO: check
+	# where this is: '500_3_5.0_6_0.05_0.1_13')
+	# name of
+	# the
+	# network
 	p.add_argument('-f', '--in_folder', type=str, default='../data/input/synthetic/')  # path of the input network
-	p.add_argument('-o', '--out_folder', type=str, default='../data/output/5-fold_cv/synthetic/wt/')  # path to store outputs
+	p.add_argument('-o', '--out_folder', type=str,
+				   default='../data/output/5-fold_cv/synthetic/wt/')  #TODO: Why is this a cv? #
+	# path to store outputs
 	p.add_argument('-e', '--ego', type=str, default='source')  # name of the source of the edge
 	p.add_argument('-t', '--alter', type=str, default='target')  # name of the target of the edge
 	p.add_argument('-r', '--out_results', type=int, default=True)  # flag to output the results in a csv file
