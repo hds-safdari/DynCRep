@@ -8,6 +8,34 @@ If you use this code please cite [this](https://doi.org/10.1088/2632-072X/ac52e6
 We present a new generative model for dynamic networks that captures reciprocity while modeling community structure.  
 This model aims to generalize to dynamic networks the method [CRep](https://github.com/mcontisc/CRep) presented in [Safdari et al. (2021)](https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.3.023209), which was of inspiration for the latent variables underlying the generative process. This was also further extended in [JointCrep](https://github.com/mcontisc/JointCRep) presented in [Contisciani et al.(2021)](https://arxiv.org/abs/2112.10436).  
 
+## Installation
+
+Before installing the package, it's recommended to create a virtual environment to isolate the package dependencies. You can create a virtual environment using the following command:
+
+```bash
+python3 -m venv --copies venv
+```
+
+Then, activate the virtual environment:
+```bash
+source venv/bin/activate
+```
+
+Once the virtual environment is activated, you can install the package dependencies using pip and the `requirements.txt` file:
+
+```bash
+pip install -r requirements.txt
+```
+## Running the Model
+
+After installing the dependencies, you can run the model using the main script `main.py`. 
+Navigate to the directory `code` and run the following command:
+
+```bash
+python main.py
+```
+This will execute the model with the default configuration. If you want to use a different configuration, you can modify the `setting_Crep_static.yaml` file according to your needs.
+
 Copyright (c) 2021 Hadiseh Safdari, Martina Contisciani and Caterina De Bacco.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
