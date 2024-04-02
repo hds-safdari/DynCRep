@@ -20,7 +20,7 @@ from scipy.optimize import brentq, root,root_scalar
 EPS = 1e-12
 
 class CRepDyn:
-	def __init__(self, undirected=False, initialization=0, ag=1.5,bg=2., rseed=0, inf=1e10, err_max=1e-12, err=0.01,
+	def __init__(self, undirected=False, initialization=0, ag=1.0,bg=0., rseed=0, inf=1e10, err_max=1e-12, err=0.01,
 				 N_real=1, tolerance=0.1, decision=2, max_iter=500, out_inference=False,
 				 in_parameters = '../data/input/synthetic/theta_500_3_5.0_6_0.05_0.2_10',
 				 fix_communities=False,fix_w=False,plot_loglik=False,beta0 = 0.5,flag_data_T=0,
@@ -275,9 +275,18 @@ class CRepDyn:
 			theta = np.load(self.in_parameters + '.npz',allow_pickle=True)
 			self._initialize_u(theta['u'])
 			self._initialize_v(theta['v'])
-			self.N = self.u.shape[0]
-
+			self.N = self.u.shape[0] 
 			self._randomize_w(rng=rng)
+
+		elif self.initialization == 2:
+			if self.verbose:
+				print('u, v and w are initialized using the input files:')
+				print(self.in_parameters + '.npz')
+			theta = np.load(self.in_parameters + '.npz',allow_pickle=True)
+			self._initialize_u(theta['u'])
+			self._initialize_v(theta['v']) 
+			self._initialize_w(theta['w'])
+			self.N = self.u.shape[0]
 
 	def _initialize_u(self, u0):
 		if u0.shape[0] != self.N:
@@ -292,6 +301,20 @@ class CRepDyn:
 		self.v = v0.copy()
 		max_entry = np.max(v0)
 		self.v += max_entry * self.err * np.random.random_sample(self.v.shape)
+
+	def _initialize_w(self,w0):  
+		 
+		if self.assortative: 
+			self.w = np.zeros((1, self.K), dtype=float)
+			self.w[:] = (np.diag(w0)).copy()  
+		else:  
+			self.w = np.zeros((1,self.K, self.K), dtype=float)
+			self.w[:] = w0.copy()   
+		print(self.w.shape)
+		
+		if self.fix_w == False:
+			max_entry = np.max(self.w)
+			self.w += max_entry * self.err * np.random.random_sample(self.w.shape) 
 
 	def _randomize_eta(self, rng=None):
 		"""
@@ -1159,21 +1182,21 @@ def func_beta_static(beta_t, obj):
 
 
 def calculate_lambda(u,v,w):
-    if w.ndim == 2:
-        M = np.einsum('ik,jk->ijk', u, v)
-        M = np.einsum('ijk,ak->aij', M, w)
-    else:
-        M = np.einsum('ik,jq->ijkq', u, v)
-        M = np.einsum('ijkq,akq->aij', M, w)
-    return M
+	if w.ndim == 2:
+		M = np.einsum('ik,jk->ijk', u, v)
+		M = np.einsum('ijk,ak->aij', M, w)
+	else:
+		M = np.einsum('ik,jq->ijkq', u, v)
+		M = np.einsum('ijkq,akq->aij', M, w)
+	return M
 
 def likelihood_aggr(u,v,w,B, EPS = 1e-12):
-    
-    lambda0_ija = calculate_lambda(u, v, w)
-    l = - lambda0_ija.sum()
-    AlogM = (B * np.log(lambda0_ija+EPS) ).sum()
-    l += AlogM
-    return l
+	
+	lambda0_ija = calculate_lambda(u, v, w)
+	l = - lambda0_ija.sum()
+	AlogM = (B * np.log(lambda0_ija+EPS) ).sum()
+	l += AlogM
+	return l
 # def func_beta_static(beta_t, obj, data_AtAtm1, data_T_vals, subs_nz, mask):
 # 	assert type(obj) is CRepDyn 
 # 	# lambda0_ija = obj._lambda0_full(obj.u, obj.v, obj.w) 

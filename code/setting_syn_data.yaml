@@ -1,0 +1,12 @@
+N: 100
+K: 3
+prng: 10
+avg_degree: 5
+structure: "assortative"
+corr : 0.1
+over : 0
+verbose: 2
+folder: '../data/input/synthetic/'
+output_parameters: True
+output_adj: True
+outfile_adj: null
