@@ -181,7 +181,7 @@ def build_B_from_A(A, nodes=None):
 	B = np.empty(shape=[len(A), N, N])
 	rw = []
 	for l in range(len(A)):
-		B[l, :, :] = nx.to_numpy_matrix(A[l], weight='weight', dtype=int, nodelist=nodes)
+		B[l, :, :] = nx.to_numpy_array(A[l], weight='weight', dtype=int, nodelist=nodes)
 		rw.append(np.multiply(B[l], B[l].T).sum() / B[l].sum())
 
 	return B, rw
