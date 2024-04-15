@@ -20,8 +20,8 @@ from scipy.optimize import brentq, root,root_scalar
 EPS = 1e-12
 
 class CRepDyn:
-	def __init__(self, undirected=False, initialization=0, ag=1.0,bg=0., rseed=0, inf=1e10, err_max=1e-12, err=0.01,
-				 N_real=1, tolerance=0.1, decision=2, max_iter=500, out_inference=False,
+	def __init__(self, undirected=False, initialization=0, ag=1.0,bg=0., rseed=0, inf=10000000000.0, err_max=0.000000000001, err=0.01,
+				 N_real=1, tolerance=0.001, decision=10, max_iter=500, out_inference=False,
 				 in_parameters = '../data/input/synthetic/theta_500_3_5.0_6_0.05_0.2_10',
 				 fix_communities=False,fix_w=False,plot_loglik=False,beta0 = 0.5,flag_data_T=0,
 				 out_folder='../data/output/', end_file='.dat', assortative=True, eta0=None, fix_eta=False, fix_beta=False,
@@ -55,7 +55,7 @@ class CRepDyn:
 		self.flag_data_T = flag_data_T # if 0: previous time step, 1: same time step
 		self.in_parameters = in_parameters
 
-		if initialization not in {0, 1,2}:  # indicator for choosing how to initialize u, v and w
+		if initialization not in {0, 1,2,3}:  # indicator for choosing how to initialize u, v and w
 			raise ValueError('The initialization parameter can be either 0, 1 or 2. It is used as an indicator to '
 							 'initialize the membership matrices u and v and the affinity matrix w. If it is 0, they '
 							 'will be generated randomly, otherwise they will upload from file.')
@@ -270,11 +270,11 @@ class CRepDyn:
 
 		elif self.initialization == 1:
 			if self.verbose:
-				print('u, v and w are initialized using the input files:')
+				print('w is initialized randomly; u, and v are initialized using the input files:')
 				print(self.in_parameters + '.npz')
 			theta = np.load(self.in_parameters + '.npz',allow_pickle=True)
-			self._initialize_u(theta['u'])
-			self._initialize_v(theta['v'])
+			self._initialize_u(theta['u'],rng=rng)
+			self._initialize_v(theta['v'],rng=rng)
 			self.N = self.u.shape[0] 
 			self._randomize_w(rng=rng)
 
@@ -283,26 +283,36 @@ class CRepDyn:
 				print('u, v and w are initialized using the input files:')
 				print(self.in_parameters + '.npz')
 			theta = np.load(self.in_parameters + '.npz',allow_pickle=True)
-			self._initialize_u(theta['u'])
-			self._initialize_v(theta['v']) 
-			self._initialize_w(theta['w'])
+			self._initialize_u(theta['u'],rng=rng)
+			self._initialize_v(theta['v'],rng=rng) 
+			self._initialize_w(theta['w'],rng=rng)
 			self.N = self.u.shape[0]
 
-	def _initialize_u(self, u0):
+		elif self.initialization == 3:
+			if self.verbose:
+				print('u, and v are initialized randomly; w is initialized using the input files:')
+				print(self.in_parameters + '.npz')
+			theta = np.load(self.in_parameters + '.npz',allow_pickle=True)
+			self._randomize_u_v(rng=rng)
+			self.N = self.u.shape[0] 
+			self._initialize_w(theta['w'],rng=rng)
+
+
+	def _initialize_u(self, u0, rng=None):
 		if u0.shape[0] != self.N:
 			raise ValueError('u.shape is different that the initialized one.',self.N,u0.shape[0])
 		self.u = u0.copy()
 		max_entry = np.max(u0)
-		self.u += max_entry * self.err * np.random.random_sample(self.u.shape)
+		self.u += max_entry * self.err * rng.random_sample(self.u.shape)
 
-	def _initialize_v(self, v0):
+	def _initialize_v(self, v0, rng=None):
 		if v0.shape[0] != self.N:
 			raise ValueError('v.shape is different that the initialized one.',self.N,v0.shape[0])
 		self.v = v0.copy()
 		max_entry = np.max(v0)
-		self.v += max_entry * self.err * np.random.random_sample(self.v.shape)
+		self.v += max_entry * self.err * rng.random_sample(self.v.shape)
 
-	def _initialize_w(self,w0):  
+	def _initialize_w(self,w0, rng=None):  
 		 
 		if self.assortative: 
 			self.w = np.zeros((1, self.K), dtype=float)
@@ -314,7 +324,7 @@ class CRepDyn:
 		
 		if self.fix_w == False:
 			max_entry = np.max(self.w)
-			self.w += max_entry * self.err * np.random.random_sample(self.w.shape) 
+			self.w += max_entry * self.err * rng.random_sample(self.w.shape) 
 
 	def _randomize_eta(self, rng=None):
 		"""
@@ -877,7 +887,7 @@ class CRepDyn:
 					# to do
 					l = - (1+self.beta_hat[self.T] * T) * self.lambda0_ija.sum() - self.eta * ( data_T[0].sum() + self.beta_hat[-1] * data_T[1:].sum())
 				elif isinstance(data, skt.sptensor): 
-					l =  - (1+self.beta_hat[self.T] * T) * self.lambda0_ija.sum() - self.eta * (data_T.sum(axis=(1,2)) * self.beta_hat).sum() 
+					l =  - (1+self.beta_hat[self.T] * T) * self.lambda0_ija.sum() - self.eta * (data_T.sum(axis=(1,2)) * self.beta_hat).sum()  
 
 			logM = np.log(self.M_nz)  
 			if isinstance(data, skt.dtensor):
