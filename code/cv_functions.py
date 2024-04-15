@@ -141,7 +141,7 @@ def calculate_conditional_expectation(B,B_to_T, u, v, w, eta=0.0, beta=1.):
 		-------
 		Matrix whose elements are lambda_{ij}.
 	"""
-	M = beta * (_lambda0_full(u, v, w) + eta * transpose_ij(B_to_T)) 
+	M = (beta * (_lambda0_full(u, v, w) + eta * transpose_ij(B_to_T)) ) / (1. + beta * (_lambda0_full(u, v, w) + eta * transpose_ij(B_to_T)) )
 	return M
 
 def calculate_AUC(pred, data0, mask=None):
