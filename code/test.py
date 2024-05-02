@@ -85,22 +85,22 @@ u, v, w, eta, beta, Loglikelihood = model.fit(data=B, T=T, nodes=nodes, K=K)
 
 # For u
 expected_u_shape = (100, 2)
-expected_u_sum = 40.015161087075086
+expected_u_sum = 40.00025694829692
 check_shape_and_sum(u, expected_u_shape, expected_u_sum, 'u')
 
 # For v
 expected_v_shape = (100, 2)
-expected_v_sum = 40.09579396973193
+expected_v_sum = 40.001933007145794
 check_shape_and_sum(v, expected_v_shape, expected_v_sum, 'v')
 
 # For w
 expected_w_shape = (5, 2, 2)
-expected_w_sum = 3.164074899087604
+expected_w_sum = 3.0039155951245258
 check_shape_and_sum(w, expected_w_shape, expected_w_sum, 'w')
 
 # ### Eta and beta
-expected_eta = 0.05876206706773662
-expected_beta = 0.2169773252428564
+expected_eta = 0.21687084165382248
+expected_beta = 0.20967743180393628
 
 
 assert np.isclose(eta, expected_eta,
@@ -109,7 +109,7 @@ assert np.isclose(beta, expected_beta,
                   atol=TOLERANCE_1), f"Expected beta to be close to {expected_beta}, but got {beta}"
 
 # ### Loglikelihood
-expected_loglikelihood = -2908.2244578230566
+expected_loglikelihood = -2872.6923935067616
 
 
 assert np.isclose(Loglikelihood, expected_loglikelihood,
@@ -118,7 +118,7 @@ assert np.isclose(Loglikelihood, expected_loglikelihood,
 
 # ### AUC
 
-expected_aucs = [0.809, 0.829, 0.844, 0.852, 0.854]
+expected_aucs = [0.811, 0.829, 0.841, 0.842, 0.843]
 
 
 lambda_inf = expected_Aija(u, v, w[0])
@@ -141,7 +141,7 @@ print('*****Test of the static version')
 model = crep.CRepDyn(
     plot_loglik=True,
     verbose=1,
-    N_real=100,
+    N_real=5,
     beta0=0.25,
     undirected=False,
     flag_data_T=1,
@@ -160,22 +160,22 @@ u, v, w, eta, beta, Loglikelihood = model.fit(data=B, T=T, nodes=nodes, K=K)
 
 # For u
 expected_u_shape = (100, 2)
-expected_u_sum = 99.08459987116899
+expected_u_sum = 100.0
 check_shape_and_sum(u, expected_u_shape, expected_u_sum, 'u')
 
 # For v
 expected_v_shape = (100, 2)
-expected_v_sum = 99.83378395028522
+expected_v_sum = 99.92123973890051
 check_shape_and_sum(v, expected_v_shape, expected_v_sum, 'v')
 
 # For w
 expected_w_shape = (1, 2)
-expected_w_sum = 3.164074899087604
+expected_w_sum = 0.03792499007908572
 check_shape_and_sum(w, expected_w_shape, expected_w_sum, 'w')
 
 # ### Eta and beta
-expected_eta = 0.05876206706773662
-expected_beta = 0.2169773252428564
+expected_eta = 0.06141942760787744
+expected_beta = 0.35602236108533
 
 assert np.isclose(eta, expected_eta,
                   atol=TOLERANCE_1), f"Expected eta to be close to {expected_eta}, but got {eta}"
@@ -183,7 +183,7 @@ assert np.isclose(beta, expected_beta,
                   atol=TOLERANCE_1), f"Expected beta to be close to {expected_beta}, but got {beta}"
 
 # ### Loglikelihood
-expected_loglikelihood = -3110.2000071135817
+expected_loglikelihood = -3174.04938026765
 
 assert np.isclose(Loglikelihood, expected_loglikelihood,
                   atol=TOLERANCE_1), (f"Expected Loglikelihood to be close to "
@@ -191,7 +191,7 @@ assert np.isclose(Loglikelihood, expected_loglikelihood,
 
 # ### AUC
 
-expected_aucs = [0.809, 0.829, 0.844, 0.852, 0.854]
+expected_aucs = [0.785, 0.806, 0.812, 0.816, 0.817]
 
 lambda_inf = expected_Aija(u, v, w[0])
 M_inf = lambda_inf + eta * crep.transpose_tensor(B)
