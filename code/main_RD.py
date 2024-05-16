@@ -22,7 +22,7 @@ def main():
 	p.add_argument('-T', '--T', type=int, default=5)  # number of time snapshots 
 	p.add_argument('-l', '--label', type=str,default='email-Eu-core')
 	p.add_argument('-f', '--in_folder', type=str, default='../data/input/')  # path of the input network
-	p.add_argument('-o', '--out_folder', type=str,default='../data/output/5-fold_cv/wtemp/')   # path to store outputs, will be generated automatically
+	p.add_argument('-o', '--out_folder', type=str,default='../data/output/wtemp/')   # path to store outputs, will be generated automatically
 	p.add_argument('-e', '--ego', type=str, default='source')  # name of the source of the edge
 	p.add_argument('-t', '--alter', type=str, default='target')  # name of the target of the edge
 	p.add_argument('-r', '--out_results', type=int, default=True)  # flag to output the results in a csv file
