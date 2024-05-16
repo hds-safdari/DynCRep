@@ -19,23 +19,23 @@ import time
 
 def main(): 
 	p = ArgumentParser()
-	p.add_argument('-a', '--algorithm', type=str, choices=['Crep_static','Crep_wtemp'], default='Crep_static')  # configuration
-	p.add_argument('-K', '--K', type=int, default=3)  # number of communities
-	p.add_argument('-T', '--T', type=int, default=100)  # number of time snapshots 
-	p.add_argument('-l', '--label', type=str,default='500_3_5.0_6_0.2_0.2_0')# Network
-	p.add_argument('-f', '--in_folder', type=str, default='../data/input/synthetic/')  # path of the input network
-	p.add_argument('-o', '--out_folder', type=str,default='../data/output/5-fold_cv/synthetic/wt/') # path to store outputs
+	p.add_argument('-a', '--algorithm', type=str, choices=['Crep_static','Crep_wtemp'], default='Crep_wtemp')  # configuration
+	p.add_argument('-K', '--K', type=int, default=4)  # number of communities
+	p.add_argument('-T', '--T', type=int, default=5)  # number of time snapshots 
+	p.add_argument('-l', '--label', type=str,default='email-Eu-core')
+	p.add_argument('-f', '--in_folder', type=str, default='../data/input/')  # path of the input network
+	p.add_argument('-o', '--out_folder', type=str,default='../data/output/5-fold_cv/wtemp/')   # path to store outputs, will be generated automatically
 	p.add_argument('-e', '--ego', type=str, default='source')  # name of the source of the edge
 	p.add_argument('-t', '--alter', type=str, default='target')  # name of the target of the edge
 	p.add_argument('-r', '--out_results', type=int, default=True)  # flag to output the results in a csv file
 	p.add_argument('-i', '--out_inference', type=int, default=True)  # flag to output the inferred parameters
-	p.add_argument('-A', '--assortative', type=int, default=1)  #flag to change the structure of the affinity matrix
-	p.add_argument('-eta', '--fix_eta', type=int, default=False)  # flag to fix reciprocity coefficient 
+	p.add_argument('-A', '--assortative', type=int, default=0)  #flag to change the structure of the affinity matrix
+	p.add_argument('-eta', '--fix_eta', type=int, default=True)  # flag to fix reciprocity coefficient 
 	p.add_argument('-s', '--sep', type=str, default='\s+')  # flag to output the results in a csv file  
-	p.add_argument('-na','--et0',type=float,default= 0.5) #initial value for the reciprocity coefficient
-	p.add_argument('-nb','--bt0',type=float,default= 0.2) #initial value for the rate of edge removal 
+	p.add_argument('-na','--et0',type=float,default= 0.0) #initial value for the reciprocity coefficient
+	p.add_argument('-nb','--bt0',type=float,default= 0.1) #initial value for the rate of edge removal 
 	p.add_argument('-z', '--rseed', type=int, default=100)#seed to generate random number 
-	p.add_argument('-E', '--end_file', type=str, default='.dat')   #the format of the output file
+	p.add_argument('-E', '--end_file', type=str, default='.csv')   #the format of the output file
 	
 
 	args = p.parse_args()
@@ -74,8 +74,7 @@ def main():
 	label = args.label  
 	print('='*30)
 	print(label)
-	network = args.in_folder+'syn_'+label+'.dat'
-	conf['in_parameters'] ='../data/input/synthetic/theta_'+label
+	network = args.in_folder+label + args.end_file
 	
 	A, B, B_T, data_T_vals = tl.import_data(network, ego=args.ego, alter=args.alter, force_dense=True, header=0,sep=args.sep,binary=True)  
 	nodes = A[0].nodes() 
@@ -85,25 +84,22 @@ def main():
 	T = max(0, min(args.T, B.shape[0]-1))   
 
 	print('\n### CV procedure ###', T)
-	comparison = [0 for _ in range(24)]
-	comparison[0] = 'CRepDyn_static' if conf['fix_eta'] == 0 else 'CRepDyn_static0'
+	comparison = [0 for _ in range(16)]
+	comparison[0] = algorithm if conf['fix_eta'] == 0 else algorithm+'0'
 	comparison[1] = conf['constrained']
 	comparison[2] = flag_data_T 
 
-	theta = np.load(args.in_folder + 'theta_'+label+'.npz',allow_pickle=True) 
 	comparison[3] = rseed
 	comparison[4] = K 
-	comparison[5] = theta['eta'] 
-	comparison[6] = theta['beta'] 
+	comparison[5] = args.et0
+	comparison[6] = args.bt0
 
-	conf['eta0'] = theta['eta'] if conf['fix_eta'] == False else 0.
-	conf['beta0'] = theta['beta']  
+	conf['eta0'] = theta['eta'] if conf['fix_eta'] == False else 0. 
 	'''
 	output results
 	'''
 	cols = ['algo','constrained','flag_data_T', 'rseed','K', 'eta0','beta0','T']#7
 	cols.extend(['eta','eta_aggr', 'beta', 'beta_aggr', 'auc', 'auc_aggr','loglik', 'loglik_aggr'])#15
-	cols.extend(['CS_U','CS_V','CS_U_aggr','CS_V_aggr','F1_U','F1_V','F1_U_aggr','F1_V_aggr'])
 
 	if out_results:
 		out_file = out_folder + label + '_cv.csv'
@@ -154,16 +150,6 @@ def main():
 		
 		comparison[12] = cvfun.calculate_AUC(M, B[t])
 		comparison[14] = loglik_test
-
-		u = cvfun.normalize_nonzero_membership(u)
-		v = cvfun.normalize_nonzero_membership(v)
-		u, cs_u = cvfun.cosine_similarity(u,theta['u'])
-		v, cs_v = cvfun.cosine_similarity(v,theta['v'])
-		comparison[16], comparison[17] = cs_u,cs_v
-		f1_u = cvfun.evalu(u,theta['u'], 'f1')
-		f1_v = cvfun.evalu(v,theta['v'], 'f1')
-		comparison[20], comparison[21] = f1_u,f1_v
-
 		'''
 		Inference using aggregated data
 		'''
@@ -176,23 +162,15 @@ def main():
 
 		u, v, w, eta, beta,maxL, algo_obj = cvfun.fit_model(B_aggr[np.newaxis,:,:], 0, nodes=nodes, algo=algorithm,K=K, **conf)
 		comparison[9] = eta
-		comparison[11] = 1
+		comparison[11] = beta
 
 		M = cvfun.calculate_conditional_expectation(B_aggr,B_aggr, u, v, w, eta=eta, beta=1)
 
-		loglik_test = cvfun.Likelihood_conditional(M, 1,B[t],B_aggr) 
+		loglik_test = cvfun.Likelihood_conditional(M, 1,B[t],B_aggr)
+		# M[B[t-1].nonzero()] = 0 # to calculate AUC
 		
 		comparison[13] = cvfun.calculate_AUC(M, B[t])
 		comparison[15] = loglik_test
-
-		u = cvfun.normalize_nonzero_membership(u)
-		v = cvfun.normalize_nonzero_membership(v)
-		u, cs_u = cvfun.cosine_similarity(u,theta['u'])
-		v, cs_v = cvfun.cosine_similarity(v,theta['v'])
-		comparison[18], comparison[19] = cs_u,cs_v
-		f1_u = cvfun.evalu(u,theta['u'], 'f1')
-		f1_v = cvfun.evalu(v,theta['v'], 'f1')
-		comparison[22], comparison[23] = f1_u,f1_v
 
 		print(t,comparison)
 

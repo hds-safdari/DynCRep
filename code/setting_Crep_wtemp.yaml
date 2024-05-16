@@ -8,4 +8,4 @@ max_iter: 800
 eta0: 0
 beta0: 0.2
 constrained: False
-assortative: True 
+assortative: False 
