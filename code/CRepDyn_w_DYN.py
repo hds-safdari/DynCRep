@@ -67,10 +67,10 @@ class CRepDyn_w_temp:
 			if self.eta0 is None:
 				self.eta0 = 0.0
 
-		# if self.ag < 1 :
-		#     self.ag = 1.
-		# if self.bg < 0:
-		#     self.bg = 0.
+		if self.ag < 1 :
+		    self.ag = 1.
+		if self.bg < 0:
+		    self.bg = 0.
 
 		if self.fix_eta:
 			self.eta = self.eta_old = self.eta_f = self.eta0
@@ -259,6 +259,27 @@ class CRepDyn_w_temp:
 		else:
 			self._randomize_beta(rng)
 
+		
+		self.u = np.zeros((self.N, self.K), dtype=float)  # out-going membership
+		self.v = np.zeros((self.N, self.K), dtype=float)  # in-going membership
+
+		# values of the parameters in the previous iteration
+		self.u_old = np.zeros((self.N, self.K), dtype=float)  # out-going membership
+		self.v_old = np.zeros((self.N, self.K), dtype=float)  # in-going membership
+
+		# final values after convergence --> the ones that maximize the log-likelihood
+		self.u_f = np.zeros((self.N, self.K), dtype=float)  # out-going membership
+		self.v_f = np.zeros((self.N, self.K), dtype=float)  # in-going membership
+
+		if self.assortative:  # purely diagonal matrix
+			self.w = np.zeros((self.L, self.K), dtype=float)
+			self.w_old = np.zeros((self.L, self.K), dtype=float)
+			self.w_f = np.zeros((self.L, self.K), dtype=float) 
+		else:
+			self.w = np.zeros((self.L, self.K, self.K), dtype=float)
+			self.w_old = np.zeros((self.L, self.K, self.K), dtype=float)
+			self.w_f = np.zeros((self.L, self.K, self.K), dtype=float)
+
 		if self.initialization == 0:
 			if self.verbose:
 				print('u, v and w are initialized randomly.')
@@ -309,8 +330,7 @@ class CRepDyn_w_temp:
 		self.v += max_entry * self.err * rng.random_sample(self.v.shape)
 
 	
-	def _initialize_w(self,w0, rng=None):  
-		self.w = np.zeros((self.L, self.K, self.K), dtype=float) 
+	def _initialize_w(self,w0, rng=None):   
 		if self.assortative:
 			if w0.ndim ==2:
 				self.w = w0[np.newaxis, :].copy() 
@@ -358,10 +378,7 @@ class CRepDyn_w_temp:
 			rng : RandomState
 				  Container for the Mersenne Twister pseudo-random number generator.
 		"""
-		if self.assortative == True:
-			self.w = np.zeros((self.L,self.K))
-		else:
-			self.w = np.zeros((self.L,self.K,self.K))
+
 		if rng is None:
 			rng = np.random.RandomState(self.rseed) 
 		for i in range(self.L):
@@ -387,16 +404,16 @@ class CRepDyn_w_temp:
 
 		if rng is None:
 			rng = np.random.RandomState(self.rseed)
-		self.u = rng.random_sample((self.N,self.K))
+		self.u = rng.random_sample(self.u.shape)
 		row_sums = self.u.sum(axis=1) 
 		self.u[row_sums > 0] /= row_sums[row_sums > 0, np.newaxis]
 
 		if not self.undirected:
-			self.v = rng.random_sample((self.N,self.K))
+			self.v = rng.random_sample(self.v.shape)
 			row_sums = self.v.sum(axis=1)
 			self.v[row_sums > 0] /= row_sums[row_sums > 0, np.newaxis]
 		else:
-			self.v = self.u 
+			self.v = np.copy(self.u) 
 
 	def _update_old_variables(self):
 		"""
@@ -558,8 +575,15 @@ class CRepDyn_w_temp:
 		return dist_eta
  
 	def _update_beta(self):
- 
-		self.beta = brentq(func_beta_static, a=0.001,b=0.999, args=(self)) 
+
+		try:
+			# Try to find beta using brentq
+			self.beta = brentq(func_beta_static, a=0.0000001, b=0.9999999, args=(self))
+		except Exception as e:
+			# If an error occurs, use root instead
+			res = root(func_beta_static, self.beta_old, args=(self))
+			self.beta = res.x[0]
+		
 		self.beta_hat[1:] = self.beta 
 
 		dist_beta = abs(self.beta - self.beta_old) 
@@ -625,6 +649,9 @@ class CRepDyn_w_temp:
 
 		dist_u = np.amax(abs(self.u - self.u_old)) 
 
+		low_values_indices = self.u < self.err_max  # values are too low
+		self.u[low_values_indices] = 0. #self.err_max  # and set to 0.
+
 		self.u_old = np.copy(self.u)   
 
 		return dist_u
@@ -674,6 +701,10 @@ class CRepDyn_w_temp:
 					v_root = root(u_with_lagrange_multiplier, self.v_old[i], args=(self.v[i],Z_vk))
 					self.v[i] = v_root.x 
 		dist_v = np.amax(abs(self.v - self.v_old))
+
+		low_values_indices = self.v < self.err_max  # values are too low
+		self.v[low_values_indices] = 0. #self.err_max  # and set to 0.
+
 		self.v_old = np.copy(self.v) 
 
 		return dist_v
@@ -697,17 +728,17 @@ class CRepDyn_w_temp:
 			uttkrp_DKQ[a,:,:] += self.data_M_nz[idx] * np.einsum('k,q->kq',self.u[i],self.v[j])
 		
 		# self.w =   (self.ag - 1) + self.w * uttkrp_DKQ
-		self.w =   self.w * uttkrp_DKQ
+		self.w =  (self.ag - 1) + self.w * uttkrp_DKQ
 
 		Z = np.einsum('k,q->kq', self.u.sum(axis=0), self.v.sum(axis=0))
 		Z = np.einsum('a,kq->akq', self.beta_hat, Z) 
-		# Z += self.bg
+		Z += self.bg
 
 		non_zeros = Z > 0    
 		self.w[non_zeros]  /= Z[non_zeros] 
 
-		# low_values_indices = self.w < self.err_max  # values are too low
-		# self.w[low_values_indices] = 0. #self.err_max  # and set to 0.
+		low_values_indices = self.w < self.err_max  # values are too low
+		self.w[low_values_indices] = 0. #self.err_max  # and set to 0.
 
 		dist_w = np.amax(abs(self.w - self.w_old)) 
 		self.w_old = np.copy(self.w_old)
@@ -936,7 +967,7 @@ class CRepDyn_w_temp:
 					List of nodes IDs.
 		"""
 
-		outfile = self.out_folder + 'theta' + self.end_file 
+		outfile = self.out_folder + 'theta_' + self.end_file 
 		np.savez_compressed(outfile + '.npz', u=self.u_f, v=self.v_f, w=self.w_f, eta=self.eta_f, beta = self.beta_f,max_it=self.final_it,
 							maxL=self.maxL, nodes=nodes)
 		print(f'\nInferred parameters saved in: {outfile + ".npz"}')

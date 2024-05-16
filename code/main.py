@@ -156,7 +156,8 @@ def main():
 		s = time.process_time() 
 		loglik_test = cvfun.Likelihood_conditional(M,beta,B[t],B[t-1])
 		e = time.process_time() 
-		M[B[t-1].nonzero()] = 1 - beta # to calculate AUC
+		if t > 1:
+			M[B[t-1].nonzero()] = 1 - beta # to calculate AUC
 		
 		comparison[12] = cvfun.calculate_AUC(M, B[t])
 		comparison[14] = loglik_test
@@ -173,18 +174,20 @@ def main():
 		'''
 		Inference using aggregated data
 		'''
+
+		conf['end_file'] = label +'_'+ str(t) +'_'+ str(K) + '_aggre' # needed to plot inferred theta
+
 		conf['fix_beta'] = True
 		B_aggr = B_train.sum(axis=0)
 		B_aggr[B_aggr>1] = 1 # binarize 
 
 		u, v, w, eta, beta,maxL, algo_obj = cvfun.fit_model(B_aggr[np.newaxis,:,:], 0, nodes=nodes, algo=algorithm,K=K, **conf)
 		comparison[9] = eta
-		comparison[11] = beta
+		comparison[11] = 1
 
-		M = cvfun.calculate_conditional_expectation(B_aggr,B_aggr, u, v, w, eta=eta, beta=beta)
+		M = cvfun.calculate_conditional_expectation(B_aggr,B_aggr, u, v, w, eta=eta, beta=1)
 
-		loglik_test = cvfun.Likelihood_conditional(M, beta,B[t],B_aggr)
-		M[B[t-1].nonzero()] = 1 - beta # to calculate AUC
+		loglik_test = cvfun.Likelihood_conditional(M, 1,B[t],B_aggr) 
 		
 		comparison[13] = cvfun.calculate_AUC(M, B[t])
 		comparison[15] = loglik_test
